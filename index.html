@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>も"ゃんけん</title>
+
+  <meta name="description" content="限界を超えろ">
+  <meta property="og:title" content="も&quot;ゃんけん">
+  <meta property="og:description" content="限界を超えろ">
+  <meta property="og:type" content="website">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="も&quot;ゃんけん">
+  <meta name="twitter:description" content="限界を超えろ">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <div class="game-container">
+
+    <!-- =========================
+         ヘッダー
+    ========================== -->
+    <header class="game-header">
+
+      <div class="title-decoration">
+
+        <img
+          src="chyoki.png"
+          alt="チョキ"
+          class="title-hand"
+        >
+
+        <h1 class="game-title">
+          も"ゃんけん
+        </h1>
+
+        <img
+          src="pa.png"
+          alt="パー"
+          class="title-hand"
+        >
+
+      </div>
+
+      <div class="round-badge">
+        ROUND <span id="round">1</span> / 9
+      </div>
+
+    </header>
+
+
+    <!-- =========================
+         スコア・倍率
+    ========================== -->
+    <section class="top-status">
+
+      <div class="status-card">
+
+        <div class="status-label">
+          SCORE
+        </div>
+
+        <div
+          class="status-value"
+          id="score"
+        >
+          0
+        </div>
+
+      </div>
+
+
+      <div
+        class="status-card multiplier-card"
+        id="multiplierCard"
+      >
+
+        <div class="status-label">
+          MULTIPLIER
+        </div>
+
+        <div
+          class="status-value multiplier-value"
+          id="multiplier"
+        >
+          ×1
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         プレイヤー情報
+    ========================== -->
+    <section class="players-area">
+
+      <!-- 貴様 -->
+      <div class="player-card">
+
+        <div class="player-name">
+          貴様
+        </div>
+
+        <div class="stock-list">
+
+          <div class="stock-item">
+
+            <img
+              src="guu.png"
+              alt="グー"
+            >
+
+            <span id="playerRockStock">
+              3
+            </span>
+
+          </div>
+
+
+          <div class="stock-item">
+
+            <img
+              src="chyoki.png"
+              alt="チョキ"
+            >
+
+            <span id="playerScissorsStock">
+              3
+            </span>
+
+          </div>
+
+
+          <div class="stock-item">
+
+            <img
+              src="pa.png"
+              alt="パー"
+            >
+
+            <span id="playerPaperStock">
+              3
+            </span>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="versus-small">
+        VS
+      </div>
+
+
+      <!-- フレネミー -->
+      <div class="player-card">
+
+        <div class="player-name">
+          フレネミー
+        </div>
+
+        <div class="stock-list">
+
+          <div class="stock-item">
+
+            <img
+              src="guu.png"
+              alt="グー"
+            >
+
+            <span id="cpuRockStock">
+              3
+            </span>
+
+          </div>
+
+
+          <div class="stock-item">
+
+            <img
+              src="chyoki.png"
+              alt="チョキ"
+            >
+
+            <span id="cpuScissorsStock">
+              3
+            </span>
+
+          </div>
+
+
+          <div class="stock-item">
+
+            <img
+              src="pa.png"
+              alt="パー"
+            >
+
+            <span id="cpuPaperStock">
+              3
+            </span>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         バトル表示
+    ========================== -->
+    <section class="battle-card">
+
+      <div class="battle-players">
+
+        <div class="battle-player">
+
+          <div class="battle-name">
+            貴様
+          </div>
+
+          <div
+            class="battle-hand"
+            id="playerHand"
+          >
+            <span class="question-mark">
+              ?
+            </span>
+          </div>
+
+        </div>
+
+
+        <div class="battle-vs">
+          VS
+        </div>
+
+
+        <div class="battle-player">
+
+          <div class="battle-name">
+            フレネミー
+          </div>
+
+          <div
+            class="battle-hand"
+            id="cpuHand"
+          >
+            <span class="question-mark">
+              ?
+            </span>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="result-area">
+
+        <div
+          id="resultMessage"
+          class="result-message"
+        >
+          おい、選べる
+        </div>
+
+        <div
+          id="pointsMessage"
+          class="points-message"
+        ></div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         手の選択
+    ========================== -->
+    <section class="choice-card">
+
+      <div class="choice-title">
+        貴様の手を選べ
+      </div>
+
+      <div class="choice-buttons">
+
+        <button
+          class="choice-button choice-rock"
+          data-hand="rock"
+          id="rockButton"
+        >
+
+          <img
+            src="guu.png"
+            alt="グー"
+          >
+
+          <span>
+            グー
+          </span>
+
+        </button>
+
+
+        <button
+          class="choice-button choice-scissors"
+          data-hand="scissors"
+          id="scissorsButton"
+        >
+
+          <img
+            src="chyoki.png"
+            alt="チョキ"
+          >
+
+          <span>
+            チョキ
+          </span>
+
+        </button>
+
+
+        <button
+          class="choice-button choice-paper"
+          data-hand="paper"
+          id="paperButton"
+        >
+
+          <img
+            src="pa.png"
+            alt="パー"
+          >
+
+          <span>
+            パー
+          </span>
+
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         ルール
+    ========================== -->
+    <section class="rule-card">
+
+      <h2>
+        ルール
+      </h2>
+
+      <ul>
+
+        <li>
+          グー・チョキ・パーはそれぞれ3回まで使用可能。
+        </li>
+
+        <li>
+          全9回のじゃんけんで勝敗を決める。
+        </li>
+
+        <li>
+          勝利すると現在の倍率 ×2点。
+        </li>
+
+        <li>
+          敗北すると現在の倍率 ×-1点。
+        </li>
+
+        <li>
+          あいこになると倍率が2倍になる。
+        </li>
+
+        <li>
+          あいこ以外では倍率は×1に戻る。
+        </li>
+
+        <li>
+          9回終了後、勝敗に関係なくダも"ルアップチャンスが発生。
+        </li>
+
+        <li>
+          ダも"ルアップは最大5回。的中するたびに持ち点が2倍になる。
+        </li>
+
+      </ul>
+
+    </section>
+
+  </div>
+
+
+  <!-- =========================================================
+       ダも"ルアップチャンス モーダル
+  ========================================================== -->
+
+  <div
+    id="doubleUpModal"
+    class="double-up-modal"
+  >
+
+    <div class="double-up-content">
+
+      <div class="double-up-glow"></div>
+
+
+      <div class="double-up-eyebrow">
+        YOUR SCORE IS ON THE LINE
+      </div>
+
+
+      <h2 class="double-up-title">
+
+        ダも"ルアップ<br>
+
+        <span>
+          チャンス！
+        </span>
+
+      </h2>
+
+
+      <p class="double-up-subtitle">
+        おい、気張れる
+      </p>
+
+
+      <div class="double-up-score-label">
+        現在の持ち点
+      </div>
+
+
+      <div
+        id="doubleUpScore"
+        class="double-up-score"
+      >
+        0
+      </div>
+
+
+      <div class="double-up-progress">
+
+        <span id="doubleUpProgress">
+          CHANCE 1 / 5
+        </span>
+
+      </div>
+
+
+      <!-- =========================
+           トランプ
+      ========================== -->
+
+      <div class="card-area">
+
+        <div
+          id="currentCard"
+          class="playing-card"
+        >
+
+          <div
+            class="card-corner card-corner-top"
+          >
+
+            <span id="currentCardRankTop">
+              ?
+            </span>
+
+            <span id="currentCardSuitTop"></span>
+
+          </div>
+
+
+          <div
+            id="currentCardCenter"
+            class="card-center"
+          >
+            ?
+          </div>
+
+
+          <div
+            class="card-corner card-corner-bottom"
+          >
+
+            <span id="currentCardRankBottom">
+              ?
+            </span>
+
+            <span id="currentCardSuitBottom"></span>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="high-low-question">
+        次のカードは……
+      </div>
+
+
+      <div class="high-low-buttons">
+
+        <button
+          id="highButton"
+          class="high-low-button high-button"
+        >
+
+          <span class="high-low-main">
+            HIGH
+          </span>
+
+          <span class="high-low-sub">
+            高い
+          </span>
+
+        </button>
+
+
+        <button
+          id="lowButton"
+          class="high-low-button low-button"
+        >
+
+          <span class="high-low-main">
+            LOW
+          </span>
+
+          <span class="high-low-sub">
+            低い
+          </span>
+
+        </button>
+
+      </div>
+
+
+      <div
+        id="highLowMessage"
+        class="high-low-message"
+      >
+        運命を選べ。
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =========================================================
+       最終結果モーダル
+  ========================================================== -->
+
+  <div
+    id="resultModal"
+    class="modal"
+  >
+
+    <div class="modal-content">
+
+      <div class="final-eyebrow">
+        GAME OVER
+      </div>
+
+
+      <h2 id="finalResultMessage">
+        結果発表
+      </h2>
+
+
+      <div class="final-title-label">
+        貴様の称号
+      </div>
+
+
+      <div
+        id="finalTitle"
+        class="final-title"
+      >
+        インド象を見てるガキ
+      </div>
+
+
+      <div class="final-score-label">
+        FINAL SCORE
+      </div>
+
+
+      <div
+        id="finalScore"
+        class="final-score"
+      >
+        0
+      </div>
+
+
+      <div class="final-stats">
+
+        <div class="final-stat">
+
+          <span>
+            勝利
+          </span>
+
+          <strong id="finalWins">
+            0
+          </strong>
+
+        </div>
+
+
+        <div class="final-stat">
+
+          <span>
+            敗北
+          </span>
+
+          <strong id="finalLosses">
+            0
+          </strong>
+
+        </div>
+
+
+        <div class="final-stat">
+
+          <span>
+            あいこ
+          </span>
+
+          <strong id="finalDraws">
+            0
+          </strong>
+
+        </div>
+
+      </div>
+
+
+      <div
+        id="doubleUpResult"
+        class="double-up-result"
+      ></div>
+
+
+      <button
+        id="restartButton"
+        class="restart-button"
+      >
+        もう一度やる
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <script src="script.js"></script>
+
+</body>
+</html>
