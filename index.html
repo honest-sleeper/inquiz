@@ -2,243 +2,80 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>身内クイズゲーム</title>
-
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-
-  <main class="game">
-
-    <!-- =========================
-         ヘッダー
-    ========================== -->
-
-    <header class="header">
+  <div class="game-container">
+    <header class="game-header">
       <h1>身内クイズゲーム</h1>
-
-      <div class="score-area">
-        <span>スコア</span>
-        <strong id="score">0</strong>
-      </div>
+      <div class="score-area">SCORE <span id="score">0</span></div>
     </header>
 
-
-    <!-- =========================
-         ログイン画面
-    ========================== -->
-
     <section id="login-screen" class="screen active">
-
       <div class="panel">
-
         <h2>ゲーム開始</h2>
-
-        <p class="description">
-          アクセスコードを入力してください。
-        </p>
-
-        <input
-          id="access-code"
-          class="text-input"
-          type="text"
-          placeholder="アクセスコード"
-          autocomplete="off"
-        >
-
-        <button
-          id="login-button"
-          class="main-button"
-        >
-          ゲーム開始
-        </button>
-
+        <p class="description">身内用アクセスコードを入力してください。</p>
+        <input type="text" id="access-code" class="text-input" placeholder="アクセスコード" autocomplete="off">
+        <button id="start-button" class="main-button">ゲーム開始</button>
         <p id="login-message" class="message"></p>
-
       </div>
-
     </section>
-
-
-    <!-- =========================
-         ジャンル選択
-    ========================== -->
 
     <section id="genre-screen" class="screen">
-
       <div class="panel">
-
         <h2>ジャンルを選択</h2>
-
-        <p class="description">
-          挑戦するジャンルを選んでください。
-        </p>
-
-        <div
-          id="genre-list"
-          class="genre-list"
-        ></div>
-
+        <p class="description">挑戦するジャンルを選んでください。</p>
+        <div id="genre-list" class="genre-list"></div>
         <p id="genre-message" class="message"></p>
-
       </div>
-
     </section>
-
-
-    <!-- =========================
-         クイズ画面
-    ========================== -->
 
     <section id="quiz-screen" class="screen">
-
       <div class="quiz-panel">
-
-        <div class="quiz-top">
-
-          <div>
-            <span class="label">ジャンル</span>
-            <strong id="current-genre">---</strong>
-          </div>
-
-          <div class="point-display">
-            <span class="label">獲得ポイント</span>
-            <strong id="question-point">0</strong>
-          </div>
-
+        <div class="quiz-info">
+          <div>ジャンル：<span id="quiz-genre">---</span></div>
+          <div>POINT：<span id="quiz-point">0</span></div>
         </div>
-
-
-        <!-- タイマー -->
 
         <div class="timer-area">
-
-          <div
-            id="timer"
-            class="timer"
-          >
-            10
-          </div>
-
-          <div class="timer-bar">
-            <div
-              id="timer-bar-fill"
-              class="timer-bar-fill"
-            ></div>
-          </div>
-
+          <div class="timer-label">残り時間</div>
+          <div id="timer" class="timer">10</div>
         </div>
 
-
-        <!-- 問題 -->
-
-        <div class="question-area">
-
-          <p class="question-label">
-            QUESTION
-          </p>
-
-          <h2 id="question-text">
-            問題を読み込んでいます……
-          </h2>
-
+        <div class="question-box">
+          <div class="question-label">QUESTION</div>
+          <div id="question-text" class="question-text">問題を読み込み中……</div>
         </div>
 
-
-        <!-- 答え -->
-
-        <div
-          id="answer-area"
-          class="answer-area hidden"
-        >
-
-          <p class="answer-label">
-            ANSWER
-          </p>
-
-          <div id="answer-text" class="answer-text">
-            ---
-          </div>
-
+        <div id="answer-area" class="answer-area hidden">
+          <div class="answer-label">ANSWER</div>
+          <div id="answer-text" class="answer-text">---</div>
         </div>
 
-
-        <!-- 判定ボタン -->
-
-        <div
-          id="judge-area"
-          class="judge-area hidden"
-        >
-
-          <p>
-            自分の回答が正解だったか選んでください。
-          </p>
-
+        <div id="judge-area" class="judge-area hidden">
+          <p class="judge-description">自分の答えは正解でしたか？</p>
           <div class="judge-buttons">
-
-            <button
-              id="correct-button"
-              class="judge-button correct"
-            >
-              ○ 正解
-            </button>
-
-            <button
-              id="wrong-button"
-              class="judge-button wrong"
-            >
-              × 不正解
-            </button>
-
+            <button id="correct-button" class="judge-button correct">○ 正解</button>
+            <button id="wrong-button" class="judge-button wrong">× 不正解</button>
           </div>
-
         </div>
-
 
         <p id="quiz-message" class="message"></p>
-
       </div>
-
     </section>
-
-
-    <!-- =========================
-         結果画面
-    ========================== -->
 
     <section id="result-screen" class="screen">
-
-      <div class="panel">
-
-        <h2>現在のスコア</h2>
-
-        <div class="final-score">
-          <span id="result-score">0</span>
-          <small>pt</small>
-        </div>
-
-        <button
-          id="back-genre-button"
-          class="main-button"
-        >
-          別のジャンルに挑戦
-        </button>
-
+      <div class="panel result-panel">
+        <h2>ゲーム終了</h2>
+        <p class="result-title">最終スコア</p>
+        <div id="final-score" class="final-score">0</div>
+        <button id="restart-button" class="main-button">もう一度遊ぶ</button>
       </div>
-
     </section>
-
-  </main>
-
+  </div>
 
   <script src="script.js"></script>
-
 </body>
 </html>

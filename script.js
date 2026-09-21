@@ -1,940 +1,441 @@
-/* =========================================================
-   身内クイズゲーム
-   メインゲームプログラム
-========================================================= */
+"use strict";
 
+/*
+ * Apps Script WebアプリURLをここに設定してください。
+ * 例:
+ * const API_URL = "https://script.google.com/macros/s/AKfycbwQgu1Q4r056JLF3L6ovhy1ChnL5LQissSgBOvj9kLyQA4Bqsf7cSV4BbveEffJjdit/exec";
+ */
+const API_URL = "ここにあなたのWebアプリURLを貼り付ける";
 
-/* =========================================================
-   API設定
-========================================================= */
-
-// ★ここにApps ScriptのWebアプリURLを入れる
-const API_URL =
-  "https://discord.com/channels/612876458431610900/1547144601712988200/1551462955298590730";
-
-
-/* =========================================================
-   ゲーム設定
-========================================================= */
-
-const GAME_CONFIG = {
-
-  // 1問終了後、自動的に次の問題へ進むまでの時間
-  nextQuestionDelay: 1500
-
-};
-
-
-/* =========================================================
-   ゲーム状態
-========================================================= */
-
-const gameState = {
-
-  session: null,
-
-  score: 0,
-
+const state = {
+  session: "",
   genres: [],
-
-  currentGenre: null,
-
+  currentGenre: "",
   currentQuestion: null,
-
+  score: 0,
   timerId: null,
-
-  timerStart: 0,
-
-  timerEnd: 0,
-
+  remainingTime: 0,
   answering: false,
-
-  answerShown: false
-
+  loading: false
 };
 
+const loginScreen = document.getElementById("login-screen");
+const genreScreen = document.getElementById("genre-screen");
+const quizScreen = document.getElementById("quiz-screen");
+const resultScreen = document.getElementById("result-screen");
 
-/* =========================================================
-   DOM
-========================================================= */
+const accessCodeInput = document.getElementById("access-code");
+const startButton = document.getElementById("start-button");
+const restartButton = document.getElementById("restart-button");
 
-const screens = {
+const loginMessage = document.getElementById("login-message");
+const genreMessage = document.getElementById("genre-message");
+const quizMessage = document.getElementById("quiz-message");
 
-  login:
-    document.getElementById("login-screen"),
+const genreList = document.getElementById("genre-list");
+const scoreElement = document.getElementById("score");
+const finalScoreElement = document.getElementById("final-score");
 
-  genre:
-    document.getElementById("genre-screen"),
+const quizGenreElement = document.getElementById("quiz-genre");
+const quizPointElement = document.getElementById("quiz-point");
+const timerElement = document.getElementById("timer");
+const questionTextElement = document.getElementById("question-text");
 
-  quiz:
-    document.getElementById("quiz-screen"),
+const answerArea = document.getElementById("answer-area");
+const answerTextElement = document.getElementById("answer-text");
+const judgeArea = document.getElementById("judge-area");
 
-  result:
-    document.getElementById("result-screen")
-
-};
-
-
-const elements = {
-
-  accessCode:
-    document.getElementById("access-code"),
-
-  loginButton:
-    document.getElementById("login-button"),
-
-  loginMessage:
-    document.getElementById("login-message"),
-
-  genreList:
-    document.getElementById("genre-list"),
-
-  genreMessage:
-    document.getElementById("genre-message"),
-
-  score:
-    document.getElementById("score"),
-
-  currentGenre:
-    document.getElementById("current-genre"),
-
-  questionPoint:
-    document.getElementById("question-point"),
-
-  timer:
-    document.getElementById("timer"),
-
-  timerBarFill:
-    document.getElementById("timer-bar-fill"),
-
-  questionText:
-    document.getElementById("question-text"),
-
-  answerArea:
-    document.getElementById("answer-area"),
-
-  answerText:
-    document.getElementById("answer-text"),
-
-  judgeArea:
-    document.getElementById("judge-area"),
-
-  correctButton:
-    document.getElementById("correct-button"),
-
-  wrongButton:
-    document.getElementById("wrong-button"),
-
-  quizMessage:
-    document.getElementById("quiz-message"),
-
-  resultScore:
-    document.getElementById("result-score"),
-
-  backGenreButton:
-    document.getElementById("back-genre-button")
-
-};
-
-
-/* =========================================================
-   初期化
-========================================================= */
+const correctButton = document.getElementById("correct-button");
+const wrongButton = document.getElementById("wrong-button");
 
 document.addEventListener("DOMContentLoaded", () => {
-
-  elements.loginButton.addEventListener(
-    "click",
-    handleLogin
-  );
-
-
-  elements.accessCode.addEventListener(
-    "keydown",
-    (event) => {
-
-      if (event.key === "Enter") {
-        handleLogin();
-      }
-
-    }
-  );
-
-
-  elements.correctButton.addEventListener(
-    "click",
-    () => judgeAnswer(true)
-  );
-
-
-  elements.wrongButton.addEventListener(
-    "click",
-    () => judgeAnswer(false)
-  );
-
-
-  elements.backGenreButton.addEventListener(
-    "click",
-    () => {
-
-      showScreen("genre");
-
-      elements.genreMessage.textContent = "";
-
-    }
-  );
-
-
   updateScore();
 
+  startButton.addEventListener("click", startGame);
+  restartButton.addEventListener("click", restartGame);
+
+  correctButton.addEventListener("click", () => judgeAnswer(true));
+  wrongButton.addEventListener("click", () => judgeAnswer(false));
+
+  accessCodeInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      startGame();
+    }
+  });
 });
 
+function showScreen(screen) {
+  [
+    loginScreen,
+    genreScreen,
+    quizScreen,
+    resultScreen
+  ].forEach((item) => item.classList.remove("active"));
 
-/* =========================================================
-   画面切り替え
-========================================================= */
-
-function showScreen(screenName) {
-
-  Object.values(screens).forEach(
-    screen => screen.classList.remove("active")
-  );
-
-
-  screens[screenName].classList.add("active");
-
+  screen.classList.add("active");
 }
-
-
-/* =========================================================
-   API共通処理
-========================================================= */
 
 async function callApi(action, params = {}) {
+  if (
+    !API_URL ||
+    API_URL.includes("ここにあなたのWebアプリURL")
+  ) {
+    throw new Error(
+      "script.js の API_URL にApps ScriptのWebアプリURLを設定してください。"
+    );
+  }
 
-  const query = new URLSearchParams();
+  const url = new URL(API_URL);
+  url.searchParams.set("action", action);
 
-  query.set("action", action);
+  Object.keys(params).forEach((key) => {
+    const value = params[key];
 
-
-  Object.entries(params).forEach(
-    ([key, value]) => {
-
-      query.set(key, value);
-
+    if (value !== undefined && value !== null) {
+      url.searchParams.set(key, String(value));
     }
-  );
+  });
 
+  let response;
 
-  const url =
-    `${API_URL}?${query.toString()}`;
-
-
-  const response =
-    await fetch(url, {
+  try {
+    response = await fetch(url.toString(), {
       method: "GET",
-      redirect: "follow"
+      redirect: "follow",
+      cache: "no-store"
     });
-
+  } catch (error) {
+    throw new Error(
+      "API通信に失敗しました。\n" +
+      "Apps ScriptのURL、公開設定、またはブラウザのCORS制限を確認してください。\n\n" +
+      error.message
+    );
+  }
 
   if (!response.ok) {
-
-    throw new Error(
-      `API通信エラー: ${response.status}`
-    );
-
+    throw new Error("APIエラー: HTTP " + response.status);
   }
 
+  let data;
 
-  const data =
-    await response.json();
+  try {
+    data = await response.json();
+  } catch (error) {
+    throw new Error("APIから正しいJSONを受け取れませんでした。");
+  }
 
+  if (!data.success) {
+    throw new Error(
+      data.message ||
+      data.error ||
+      "APIでエラーが発生しました。"
+    );
+  }
 
   return data;
-
 }
 
+async function startGame() {
+  if (state.loading) {
+    return;
+  }
 
-/* =========================================================
-   ログイン
-========================================================= */
-
-async function handleLogin() {
-
-  const code =
-    elements.accessCode.value.trim();
-
+  const code = accessCodeInput.value.trim();
 
   if (!code) {
-
-    elements.loginMessage.textContent =
-      "アクセスコードを入力してください。";
-
+    loginMessage.textContent = "アクセスコードを入力してください。";
     return;
-
   }
 
-
-  elements.loginButton.disabled = true;
-
-  elements.loginMessage.textContent =
-    "接続しています……";
-
+  state.loading = true;
+  startButton.disabled = true;
+  loginMessage.textContent = "接続中……";
 
   try {
+    const data = await callApi("login", { code });
 
-    const data =
-      await callApi(
-        "login",
-        {
-          code: code
-        }
-      );
+    state.session = data.session;
+    state.score = 0;
 
+    updateScore();
 
-    if (!data.success) {
+    sessionStorage.setItem("quiz_session", state.session);
 
-      throw new Error(
-        data.message || "ログインできませんでした"
-      );
-
-    }
-
-
-    gameState.session =
-      data.session;
-
-
-    // ページをリロードしても一時的に保持
-    sessionStorage.setItem(
-      "quiz_session",
-      gameState.session
-    );
-
-
-    elements.loginMessage.textContent = "";
-
+    loginMessage.textContent = "";
 
     await loadGenres();
-
-
   } catch (error) {
-
     console.error(error);
-
-    elements.loginMessage.textContent =
-      error.message;
-
+    loginMessage.textContent = error.message;
   } finally {
-
-    elements.loginButton.disabled = false;
-
+    state.loading = false;
+    startButton.disabled = false;
   }
-
 }
-
-
-/* =========================================================
-   ジャンル取得
-========================================================= */
 
 async function loadGenres() {
-
-  showScreen("genre");
-
-
-  elements.genreList.innerHTML =
-    "<p>ジャンルを読み込んでいます……</p>";
-
+  genreMessage.textContent = "ジャンルを読み込み中……";
 
   try {
+    const data = await callApi("genres", {
+      session: state.session
+    });
 
-    const data =
-      await callApi(
-        "genres",
-        {
-          session: gameState.session
-        }
-      );
+    state.genres = Array.isArray(data.genres)
+      ? data.genres
+      : [];
 
-
-    if (!data.success) {
-
-      throw new Error(
-        data.message || "ジャンルを取得できませんでした"
-      );
-
+    if (state.genres.length === 0) {
+      throw new Error("選択できるジャンルがありません。");
     }
-
-
-    gameState.genres =
-      data.genres || [];
-
 
     renderGenres();
-
-
+    genreMessage.textContent = "";
+    showScreen(genreScreen);
   } catch (error) {
-
     console.error(error);
-
-    elements.genreList.innerHTML = "";
-
-    elements.genreMessage.textContent =
-      error.message;
-
+    genreMessage.textContent = error.message;
   }
-
 }
-
-
-/* =========================================================
-   ジャンル表示
-========================================================= */
 
 function renderGenres() {
+  genreList.innerHTML = "";
 
-  elements.genreList.innerHTML = "";
+  state.genres.forEach((item) => {
+    const button = document.createElement("button");
 
+    button.type = "button";
+    button.className = "genre-button";
+    button.textContent = item.display || item.genre;
 
-  if (gameState.genres.length === 0) {
+    button.addEventListener("click", () => {
+      selectGenre(item.genre);
+    });
 
-    elements.genreMessage.textContent =
-      "選択できるジャンルがありません。";
-
-    return;
-
-  }
-
-
-  gameState.genres.forEach(
-    genreData => {
-
-      const button =
-        document.createElement("button");
-
-
-      button.className =
-        "genre-button";
-
-
-      button.textContent =
-        genreData.display || genreData.genre;
-
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          startQuiz(
-            genreData.genre
-          );
-
-        }
-      );
-
-
-      elements.genreList.appendChild(button);
-
-    }
-  );
-
+    genreList.appendChild(button);
+  });
 }
 
+async function selectGenre(genre) {
+  if (state.loading) {
+    return;
+  }
 
-/* =========================================================
-   クイズ開始
-========================================================= */
-
-async function startQuiz(genre) {
-
-  gameState.currentGenre =
-    genre;
-
-
-  elements.currentGenre.textContent =
-    genre;
-
-
-  showScreen("quiz");
-
-
-  resetQuizUI();
-
-
-  elements.quizMessage.textContent =
-    "問題を読み込んでいます……";
-
+  state.currentGenre = genre;
+  state.loading = true;
+  genreMessage.textContent = "問題を読み込み中……";
 
   try {
-
-    const data =
-      await callApi(
-        "question",
-        {
-          session: gameState.session,
-          genre: genre
-        }
-      );
-
-
-    if (!data.success) {
-
-      throw new Error(
-        data.message ||
-        "問題を取得できませんでした"
-      );
-
-    }
-
-
-    gameState.currentQuestion =
-      data.question;
-
-
-    elements.quizMessage.textContent = "";
-
-
-    displayQuestion();
-
-
+    await loadQuestion();
   } catch (error) {
-
     console.error(error);
+    genreMessage.textContent = error.message;
+  } finally {
+    state.loading = false;
+  }
+}
 
-    elements.quizMessage.textContent =
-      error.message;
+async function loadQuestion() {
+  stopTimer();
 
+  hideAnswerArea();
+  hideJudgeArea();
+
+  quizMessage.textContent = "";
+
+  const data = await callApi("question", {
+    session: state.session,
+    genre: state.currentGenre
+  });
+
+  state.currentQuestion = data.question;
+
+  if (!state.currentQuestion) {
+    throw new Error("問題データが取得できませんでした。");
   }
 
+  quizGenreElement.textContent = state.currentGenre;
+  quizPointElement.textContent = state.currentQuestion.point;
+  questionTextElement.textContent = state.currentQuestion.question;
+
+  showScreen(quizScreen);
+
+  startTimer(Number(state.currentQuestion.time) || 10);
 }
-
-
-/* =========================================================
-   問題表示
-========================================================= */
-
-function displayQuestion() {
-
-  const question =
-    gameState.currentQuestion;
-
-
-  elements.questionText.textContent =
-    question.question;
-
-
-  elements.questionPoint.textContent =
-    question.point;
-
-
-  gameState.answerShown = false;
-
-  gameState.answering = true;
-
-
-  startTimer(
-    Number(question.time)
-  );
-
-}
-
-
-/* =========================================================
-   タイマー
-========================================================= */
 
 function startTimer(seconds) {
+  stopTimer();
 
-  clearTimer();
-
-
-  const duration =
-    seconds * 1000;
-
-
-  gameState.timerStart =
-    Date.now();
-
-
-  gameState.timerEnd =
-    gameState.timerStart + duration;
-
-
+  state.remainingTime = Math.max(0, Math.ceil(seconds));
   updateTimer();
 
+  state.timerId = setInterval(() => {
+    state.remainingTime--;
+    updateTimer();
 
-  gameState.timerId =
-    setInterval(
-      updateTimer,
-      50
-    );
-
+    if (state.remainingTime <= 0) {
+      stopTimer();
+      revealAnswer();
+    }
+  }, 1000);
 }
 
-
-/* =========================================================
-   タイマー更新
-========================================================= */
+function stopTimer() {
+  if (state.timerId !== null) {
+    clearInterval(state.timerId);
+    state.timerId = null;
+  }
+}
 
 function updateTimer() {
+  timerElement.textContent = String(
+    Math.max(0, state.remainingTime)
+  );
 
-  const now =
-    Date.now();
+  timerElement.classList.remove("warning", "danger");
 
-
-  const remaining =
-    Math.max(
-      0,
-      gameState.timerEnd - now
-    );
-
-
-  const total =
-    gameState.timerEnd -
-    gameState.timerStart;
-
-
-  const seconds =
-    Math.ceil(
-      remaining / 1000
-    );
-
-
-  elements.timer.textContent =
-    seconds;
-
-
-  const ratio =
-    total > 0
-      ? remaining / total
-      : 0;
-
-
-  elements.timerBarFill.style.width =
-    `${Math.max(0, ratio * 100)}%`;
-
-
-  if (remaining <= 0) {
-
-    clearTimer();
-
-    handleTimeUp();
-
+  if (state.remainingTime <= 3) {
+    timerElement.classList.add("danger");
+  } else if (state.remainingTime <= 5) {
+    timerElement.classList.add("warning");
   }
-
 }
 
-
-/* =========================================================
-   タイマー停止
-========================================================= */
-
-function clearTimer() {
-
-  if (gameState.timerId !== null) {
-
-    clearInterval(
-      gameState.timerId
-    );
-
-    gameState.timerId = null;
-
-  }
-
-}
-
-
-/* =========================================================
-   時間切れ
-========================================================= */
-
-async function handleTimeUp() {
-
-  if (!gameState.answering) {
+async function revealAnswer() {
+  if (state.answering || !state.currentQuestion) {
     return;
   }
 
-
-  gameState.answering = false;
-
-
-  elements.timer.textContent =
-    "0";
-
-
-  elements.quizMessage.textContent =
-    "時間切れ！答えを確認しています……";
-
-
-  await fetchAnswer();
-
-}
-
-
-/* =========================================================
-   答え取得
-========================================================= */
-
-async function fetchAnswer() {
-
-  const question =
-    gameState.currentQuestion;
-
-
-  if (!question) {
-    return;
-  }
-
+  state.answering = true;
+  quizMessage.textContent = "答えを取得中……";
 
   try {
+    const data = await callApi("answer", {
+      session: state.session,
+      id: state.currentQuestion.id
+    });
 
-    const data =
-      await callApi(
-        "answer",
-        {
-          session: gameState.session,
-          id: question.id
-        }
-      );
+    answerTextElement.textContent = data.answer;
 
+    showAnswerArea();
+    showJudgeArea();
 
-    /*
-      念のためサーバー側がまだ
-      時間切れと判定していない場合にも対応
-    */
-
-    if (!data.success) {
-
-      if (data.error === "TOO_EARLY") {
-
-        const remaining =
-          Number(data.remaining || 1);
-
-
-        setTimeout(
-          fetchAnswer,
-          Math.max(
-            500,
-            remaining * 1000
-          )
-        );
-
-
-        return;
-
-      }
-
-
-      throw new Error(
-        data.message ||
-        "答えを取得できませんでした"
-      );
-
-    }
-
-
-    showAnswer(
-      data.answer
-    );
-
-
+    quizMessage.textContent =
+      "自分の答えと照らし合わせてください。";
   } catch (error) {
-
     console.error(error);
 
-    elements.quizMessage.textContent =
-      error.message;
+    if (
+      error.message.includes("まだ制限時間") ||
+      error.message.includes("TOO_EARLY")
+    ) {
+      setTimeout(() => {
+        state.answering = false;
+        revealAnswer();
+      }, 1000);
 
+      return;
+    }
+
+    quizMessage.textContent = error.message;
   }
 
+  state.answering = false;
 }
 
-
-/* =========================================================
-   答え表示
-========================================================= */
-
-function showAnswer(answer) {
-
-  gameState.answerShown = true;
-
-
-  elements.answerText.textContent =
-    answer;
-
-
-  elements.answerArea.classList.remove(
-    "hidden"
-  );
-
-
-  elements.judgeArea.classList.remove(
-    "hidden"
-  );
-
-
-  elements.quizMessage.textContent =
-    "あなたの回答が正解だったか選んでください。";
-
+function showAnswerArea() {
+  answerArea.classList.remove("hidden");
 }
 
+function hideAnswerArea() {
+  answerArea.classList.add("hidden");
+  answerTextElement.textContent = "---";
+}
 
-/* =========================================================
-   正解 / 不正解
-========================================================= */
+function showJudgeArea() {
+  judgeArea.classList.remove("hidden");
+}
+
+function hideJudgeArea() {
+  judgeArea.classList.add("hidden");
+}
 
 function judgeAnswer(isCorrect) {
-
-  if (!gameState.answerShown) {
+  if (!state.currentQuestion) {
     return;
   }
 
-
-  /*
-    二重クリック防止
-  */
-
-  elements.correctButton.disabled = true;
-
-  elements.wrongButton.disabled = true;
-
+  correctButton.disabled = true;
+  wrongButton.disabled = true;
 
   if (isCorrect) {
-
-    const point =
-      Number(
-        gameState.currentQuestion.point
-      ) || 0;
-
-
-    gameState.score += point;
-
-
-    elements.quizMessage.textContent =
-      `正解！ +${point}ポイント`;
-
-  } else {
-
-    elements.quizMessage.textContent =
-      "不正解。ポイントは入りません。";
-
+    state.score += Number(state.currentQuestion.point) || 0;
   }
-
 
   updateScore();
 
-
-  /*
-    少し間を置いて次の問題へ
-  */
-
-  setTimeout(
-    () => {
-
-      resetQuizUI();
-
-      startQuiz(
-        gameState.currentGenre
-      );
-
-    },
-    GAME_CONFIG.nextQuestionDelay
-  );
-
+  setTimeout(() => {
+    correctButton.disabled = false;
+    wrongButton.disabled = false;
+    nextQuestion();
+  }, 500);
 }
 
+async function nextQuestion() {
+  state.loading = true;
 
-/* =========================================================
-   UIリセット
-========================================================= */
+  try {
+    await loadQuestion();
+  } catch (error) {
+    console.error(error);
 
-function resetQuizUI() {
-
-  clearTimer();
-
-
-  elements.questionText.textContent =
-    "問題を読み込んでいます……";
-
-
-  elements.questionPoint.textContent =
-    "0";
-
-
-  elements.timer.textContent =
-    "0";
-
-
-  elements.timerBarFill.style.width =
-    "100%";
-
-
-  elements.answerText.textContent =
-    "---";
-
-
-  elements.answerArea.classList.add(
-    "hidden"
-  );
-
-
-  elements.judgeArea.classList.add(
-    "hidden"
-  );
-
-
-  elements.correctButton.disabled =
-    false;
-
-
-  elements.wrongButton.disabled =
-    false;
-
-
-  elements.quizMessage.textContent =
-    "";
-
+    if (
+      error.message.includes("出題できる問題がありません")
+    ) {
+      showResult();
+    } else {
+      quizMessage.textContent = error.message;
+    }
+  } finally {
+    state.loading = false;
+  }
 }
-
-
-/* =========================================================
-   スコア更新
-========================================================= */
 
 function updateScore() {
-
-  elements.score.textContent =
-    gameState.score;
-
-
-  elements.resultScore.textContent =
-    gameState.score;
-
+  scoreElement.textContent = String(state.score);
 }
 
+function showResult() {
+  stopTimer();
+  finalScoreElement.textContent = String(state.score);
+  showScreen(resultScreen);
+}
 
-/* =========================================================
-   ページを再読み込みした場合
-========================================================= */
+async function restartGame() {
+  stopTimer();
 
-function restoreSession() {
+  state.currentGenre = "";
+  state.currentQuestion = null;
+  state.score = 0;
+  state.answering = false;
+  state.loading = false;
 
-  const savedSession =
-    sessionStorage.getItem(
-      "quiz_session"
-    );
+  updateScore();
 
+  hideAnswerArea();
+  hideJudgeArea();
 
-  if (!savedSession) {
-    return false;
+  if (!state.session) {
+    showScreen(loginScreen);
+    return;
   }
 
+  showScreen(genreScreen);
 
-  gameState.session =
-    savedSession;
-
-
-  return true;
-
+  try {
+    await loadGenres();
+  } catch (error) {
+    console.error(error);
+    genreMessage.textContent = error.message;
+  }
 }
