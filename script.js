@@ -9,8 +9,8 @@
 ========================================================= */
 
 // ★ここにApps ScriptのWebアプリURLを入れる
-const API_URL =https://script.google.com/macros/s/AKfycbwQgu1Q4r056JLF3L6ovhy1ChnL5LQissSgBOvj9kLyQA4Bqsf7cSV4BbveEffJjdit/exec
-  "ここにあなたのWebアプリURLを貼り付ける";
+const API_URL =
+  "https://discord.com/channels/612876458431610900/1547144601712988200/1551462955298590730";
 
 
 /* =========================================================
